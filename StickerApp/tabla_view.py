@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 
 class TablaView:
+    def vaciar(self):
+        self.tree.delete(*self.tree.get_children())
     def __init__(self, parent):
         # --- Definir columnas por defecto usando el header del CSV proporcionado, pero con números del 21 al 42 ---
         self.default_columns = [
@@ -55,6 +57,29 @@ class TablaView:
                 self.tree.column(col, width=normal_width, anchor='center')
         for _, row in df.iterrows():
             self.tree.insert('', 'end', values=list(row))
+
+        # --- Footer de sumas ---
+        # Solo si hay filas
+        if not df.empty:
+            sumas = []
+            for col in df.columns:
+                if col in numeric_cols or col == 'TOTAL':
+                    try:
+                        suma = df[col].astype(float).sum()
+                        suma = int(suma) if suma == int(suma) else round(suma, 2)
+                        sumas.append(suma)
+                    except Exception:
+                        sumas.append('')
+                else:
+                    sumas.append('')
+            # Insertar como última fila, con estilo diferente si se desea
+            self.tree.insert('', 'end', values=sumas, tags=('footer',))
+            self.tree.tag_configure(
+                'footer',
+                background='#b6d7a8',  # verde suave
+                font=('Arial', 10, 'bold'),
+                foreground='#222'
+            )
 
     def get_frame(self):
         return self.frame

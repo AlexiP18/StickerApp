@@ -3,7 +3,7 @@ from tkinter import filedialog, messagebox
 import shutil
 
 def asociar_imagen(data, parent):
-    codigos = sorted(list(data['CÓDIGO']))
+    codigos = sorted(set(str(c).upper() for c in data['CÓDIGO']))
     ruta_img = os.path.join(os.path.dirname(__file__), 'images')
     import tkinter as tk
     from PIL import Image, ImageTk
