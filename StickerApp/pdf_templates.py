@@ -30,7 +30,7 @@ def generar_pdf_caja(data, ruta_pdf=None, mostrar_mensaje=True):
     count = 0
     fila = col = 0
     for idx, row in data.iterrows():
-        for talla in [str(n) for n in range(33,43)]:
+        for talla in [str(n) for n in range(21,44)]:
             cantidad = row.get(talla, 0)
             if pd.isna(cantidad) or int(cantidad) == 0:
                 continue
@@ -233,25 +233,33 @@ def generar_pdf_etiquetado(data, ruta_pdf=None, mostrar_mensaje=True):
     etiquetas_por_pagina = etiquetas_por_fila * etiquetas_por_col
     x0, y0 = margen, margen
     count = 0
-    fila = col = 0
+    # Construir una lista de (row, talla, cantidad) para todos los modelos y tallas presentes
+    etiquetas = []
     for idx, row in data.iterrows():
-        for talla in [str(n) for n in range(33,43)]:
+        for talla in [str(n) for n in range(21,44)]:
             cantidad = row.get(talla, 0)
             if pd.isna(cantidad) or int(cantidad) == 0:
                 continue
-            for _ in range(int(cantidad)):
-                x = x0 + (col * etiqueta_w)
-                y = alto - y0 - ((fila + 1) * etiqueta_h)
-                dibujar_etiqueta_material(c, x, y, row, talla, etiqueta_w, etiqueta_h)
-                count += 1
-                col += 1
-                if col >= etiquetas_por_fila:
-                    col = 0
-                    fila += 1
-                    if fila >= etiquetas_por_col:
-                        c.showPage()
-                        fila = 0
-                        col = 0
+            etiquetas.extend([(row, talla)] * (int(cantidad) * 2))
+
+    # Ordenar la lista de etiquetas primero por talla (como número), luego por modelo (opcional)
+    etiquetas.sort(key=lambda x: int(x[1]))
+
+    fila = col = 0
+    for etiqueta in etiquetas:
+        row, talla = etiqueta
+        x = x0 + (col * etiqueta_w)
+        y = alto - y0 - ((fila + 1) * etiqueta_h)
+        dibujar_etiqueta_material(c, x, y, row, talla, etiqueta_w, etiqueta_h)
+        count += 1
+        col += 1
+        if col >= etiquetas_por_fila:
+            col = 0
+            fila += 1
+            if fila >= etiquetas_por_col:
+                c.showPage()
+                fila = 0
+                col = 0
     if count == 0:
         if mostrar_mensaje:
             messagebox.showwarning('Sin etiquetas', 'No se generó ninguna etiqueta. Verifica los datos de tallas en el Excel y el tamaño de la etiqueta.')
