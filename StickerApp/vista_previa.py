@@ -17,6 +17,66 @@ def mostrar_vista_previa_pdf(parent, data, tipo_sticker, generar_pdf_caja, gener
     # 1. Generar PDF temporal
     tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
     tmp_pdf.close()
+    colores_validados = {'ok': True}
+
+    def show_modal_message(title, msg, allow_save=False, on_save=None):
+        modal = tk.Toplevel(parent)
+        modal.title(title)
+        modal.geometry('340x160')
+        modal.resizable(False, False)
+        modal.transient(parent)
+        modal.grab_set()
+        # Centrado
+        modal.update_idletasks()
+        parent_x = parent.winfo_rootx()
+        parent_y = parent.winfo_rooty()
+        parent_w = parent.winfo_width()
+        parent_h = parent.winfo_height()
+        win_w = modal.winfo_width()
+        win_h = modal.winfo_height()
+        x = parent_x + (parent_w // 2) - (win_w // 2)
+        y = parent_y + (parent_h // 2) - (win_h // 2)
+        modal.geometry(f'+{x}+{y}')
+        lbl = tk.Label(modal, text=msg, font=('Arial', 11), wraplength=320)
+        lbl.pack(pady=(18,10), padx=10)
+        btn_frame = tk.Frame(modal)
+        btn_frame.pack(fill='x', padx=10, pady=(0,8))
+        if allow_save:
+            btn_save = tk.Button(btn_frame, text='Guardar', command=lambda: (on_save() if on_save else None, modal.destroy()), bg='#4caf50', fg='white', font=('Arial', 11, 'bold'))
+            btn_save.pack(side='left', fill='x', expand=True, padx=(0,6))
+        btn = tk.Button(btn_frame, text='Cerrar', command=modal.destroy, width=12)
+        btn.pack(side='left', fill='x', expand=True)
+        modal.wait_window()
+
+    def validar_colores_faltantes():
+        # Detectar colores faltantes en la paleta
+        from pdf_templates import cargar_paleta_colores
+        paleta = cargar_paleta_colores()
+        colores_en_excel = set()
+        for row in data.itertuples():
+            for c in str(getattr(row, 'COLOR', '')).split('/'):
+                c = c.strip().upper()
+                if c:
+                    colores_en_excel.add(c)
+        faltantes = [c for c in colores_en_excel if c not in paleta or not paleta[c]]
+        return faltantes
+    faltantes = validar_colores_faltantes()
+    if faltantes:
+        # Mostrar ventana de edición de colores faltantes
+        from definir_colores_window import DefinirColoresWindow
+        from pdf_templates import cargar_paleta_colores, guardar_paleta_colores
+        paleta = cargar_paleta_colores()
+        root = parent if isinstance(parent, tk.Tk) else parent.winfo_toplevel()
+        def guardar_callback(nuevos_colores):
+            paleta.update(nuevos_colores)
+            guardar_paleta_colores(paleta)
+        win = DefinirColoresWindow(root, faltantes, guardar_callback)
+        win.wait_window()
+        # Revalidar después de editar
+        if validar_colores_faltantes():
+            messagebox.showwarning('Colores incompletos', 'No se puede establecer la vista previa hasta especificar los colores faltantes.')
+            os.unlink(tmp_pdf.name)
+            return
     try:
         if tipo == 'etiquetado':
             generar_pdf_etiquetado(data, ruta_pdf=tmp_pdf.name, mostrar_mensaje=False)
@@ -47,18 +107,23 @@ def mostrar_vista_previa_pdf(parent, data, tipo_sticker, generar_pdf_caja, gener
     preview.grab_set()
     center_modal(preview, parent)
 
-    def show_modal_message(title, msg):
+    def show_modal_message(title, msg, allow_save=False, on_save=None):
         modal = tk.Toplevel(preview)
         modal.title(title)
-        modal.geometry('340x120')
+        modal.geometry('340x160')
         modal.resizable(False, False)
         modal.transient(preview)
         modal.grab_set()
         center_modal(modal, preview)
         lbl = tk.Label(modal, text=msg, font=('Arial', 11), wraplength=320)
-        lbl.pack(pady=18, padx=10)
-        btn = tk.Button(modal, text='Cerrar', command=modal.destroy, width=12)
-        btn.pack(pady=8)
+        lbl.pack(pady=(18,10), padx=10)
+        btn_frame = tk.Frame(modal)
+        btn_frame.pack(fill='x', padx=10, pady=(0,8))
+        if allow_save:
+            btn_save = tk.Button(btn_frame, text='Guardar', command=lambda: (on_save() if on_save else None, modal.destroy()), bg='#4caf50', fg='white', font=('Arial', 11, 'bold'))
+            btn_save.pack(side='left', fill='x', expand=True, padx=(0,6))
+        btn = tk.Button(btn_frame, text='Cerrar', command=modal.destroy, width=12)
+        btn.pack(side='left', fill='x', expand=True)
         modal.wait_window()
 
     # --- CARGA DE ICONOS (usa PNGs en assets/icons/) ---

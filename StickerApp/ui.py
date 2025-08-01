@@ -31,10 +31,36 @@ class StickerApp:
         header_inner.grid_columnconfigure(0, weight=1)
         header_buttons = tk.Frame(header_inner)
         header_buttons.grid(row=0, column=0, sticky='nsew')
-        # Usar grid para centrar los botones
-        self.btn_agregar = tk.Button(header_buttons, text='Agregar archivo Excel', command=self.agregar_excel)
-        self.btn_vaciar = tk.Button(header_buttons, text='Vaciar tabla', command=self.vaciar_tabla)
-        self.btn_descargar = tk.Button(header_buttons, text='Descargar Excel', command=self.descargar_excel)
+        # Cargar iconos
+        import os
+        from PIL import Image, ImageTk
+        icon_dir = os.path.join(os.path.dirname(__file__), 'assets', 'icons')
+        def load_icon(filename, size=(22,22)):
+            path = os.path.join(icon_dir, filename)
+            if os.path.exists(path):
+                img = Image.open(path)
+                img = img.resize(size, Image.LANCZOS)
+                return ImageTk.PhotoImage(img)
+            return None
+        self._icon_refs = {}
+        icon_excel = load_icon('excel.png')
+        icon_vaciar = load_icon('vaciar.png')
+        icon_descargar = load_icon('descargar.png')
+        icon_cadena = load_icon('cadena.png')
+        icon_paleta = load_icon('paleta.png')
+        icon_vista = load_icon('vista.png')
+        self._icon_refs.update({
+            'excel': icon_excel,
+            'vaciar': icon_vaciar,
+            'descargar': icon_descargar,
+            'cadena': icon_cadena,
+            'paleta': icon_paleta,
+            'vista': icon_vista
+        })
+        # Usar grid para centrar los botones con iconos
+        self.btn_agregar = tk.Button(header_buttons, text='Agregar Excel', image=icon_excel, compound='left', command=self.agregar_excel, padx=8)
+        self.btn_vaciar = tk.Button(header_buttons, text='Vaciar tabla', image=icon_vaciar, compound='left', command=self.vaciar_tabla, padx=8)
+        self.btn_descargar = tk.Button(header_buttons, text='Descargar Excel', image=icon_descargar, compound='left', command=self.descargar_excel, padx=8)
         self.btn_agregar.grid(row=0, column=0, padx=(0,5), pady=2)
         self.btn_vaciar.grid(row=0, column=1, padx=(0,5), pady=2)
         self.btn_descargar.grid(row=0, column=2, padx=(0,5), pady=2)
@@ -56,8 +82,8 @@ class StickerApp:
         footer_inner.grid_columnconfigure(0, weight=1)
         footer_buttons = tk.Frame(footer_inner)
         footer_buttons.grid(row=0, column=0, sticky='nsew')
-        # Usar grid para centrar los controles
-        self.btn_asociar_img = tk.Button(footer_buttons, text='Asociar imágenes a modelos', command=self.abrir_ventana_asociar_imagen)
+        # Usar grid para centrar los controles con iconos
+        self.btn_asociar_img = tk.Button(footer_buttons, text='Imagenes-Modelos', image=icon_cadena, compound='left', command=self.abrir_ventana_asociar_imagen, padx=8)
         self.btn_asociar_img.grid(row=0, column=0, padx=(0,10), pady=2)
 
         self.tipo_sticker = tk.StringVar(value='etiquetado')
@@ -67,10 +93,41 @@ class StickerApp:
         tk.Radiobutton(frame_tipo, text='Etiquetado (interior)', variable=self.tipo_sticker, value='etiquetado').pack(side='left')
         tk.Radiobutton(frame_tipo, text='Caja', variable=self.tipo_sticker, value='caja').pack(side='left')
 
-        self.btn_previsualizar = tk.Button(footer_buttons, text='Vista previa e imprimir', command=self.vista_previa_pdf)
-        self.btn_previsualizar.grid(row=0, column=2, padx=(0,10), pady=2)
-        footer_buttons.grid_columnconfigure((0,1,2), weight=1)
+        self.btn_colores = tk.Button(footer_buttons, text='Paleta de colores', image=icon_paleta, compound='left', command=self.abrir_paleta_colores, padx=8)
+        self.btn_colores.grid(row=0, column=2, padx=(0,10), pady=2)
+        self.btn_previsualizar = tk.Button(footer_buttons, text='Vista previa', image=icon_vista, compound='left', command=self.vista_previa_pdf, padx=8)
+        self.btn_previsualizar.grid(row=0, column=3, padx=(0,10), pady=2)
+        footer_buttons.grid_columnconfigure((0,1,2,3), weight=1)
         footer_buttons.grid_rowconfigure(0, weight=1)
+
+    def abrir_paleta_colores(self):
+        import os
+        import json
+        import tkinter as tk
+        from definir_colores_window import DefinirColoresWindow
+        RUTA_PALETA = os.path.join(os.path.dirname(__file__), 'colores.json')
+        if not os.path.exists(RUTA_PALETA):
+            paleta = {}
+        else:
+            with open(RUTA_PALETA, 'r', encoding='utf-8') as f:
+                paleta = json.load(f)
+        colores_existentes = list(paleta.keys())
+        def guardar_nueva_paleta(nueva_paleta):
+            with open(RUTA_PALETA, 'w', encoding='utf-8') as f:
+                json.dump(nueva_paleta, f, indent=2, ensure_ascii=False)
+        # Permitir editar todos los colores existentes
+        root = self.root
+        def on_guardar(res):
+            guardar_nueva_paleta(res)
+        win = DefinirColoresWindow(root, colores_existentes, on_guardar)
+        # Prellenar los previews con los colores actuales
+        for color in colores_existentes:
+            hexcol = paleta.get(color)
+            if hexcol:
+                win.entries[color]['hex'] = hexcol
+                win.entries[color]['preview'].config(bg=hexcol)
+        win.verificar_completos()
+        win.grab_set()
 
     def descargar_excel(self):
         import datetime

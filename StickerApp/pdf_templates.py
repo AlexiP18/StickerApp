@@ -1,7 +1,9 @@
+
+
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, colorchooser
 import os
 import datetime
 from svglib.svglib import svg2rlg
@@ -9,8 +11,53 @@ from reportlab.graphics import renderPDF
 from reportlab.pdfbase import pdfmetrics
 from PIL import Image
 import pandas as pd
+import json
+
+# --- Paleta de colores dinámica ---
+RUTA_PALETA = os.path.join(os.path.dirname(__file__), 'colores.json')
+def cargar_paleta_colores():
+    if not os.path.exists(RUTA_PALETA):
+        return {}
+    with open(RUTA_PALETA, 'r', encoding='utf-8') as f:
+        return json.load(f)
+def guardar_paleta_colores(paleta):
+    with open(RUTA_PALETA, 'w', encoding='utf-8') as f:
+        json.dump(paleta, f, indent=2, ensure_ascii=False)
 
 def generar_pdf_caja(data, ruta_pdf=None, mostrar_mensaje=True):
+    # ...existing code...
+    def definir_colores_nuevos(colores_nuevos, paleta):
+        import tkinter as tk
+        from definir_colores_window import DefinirColoresWindow
+        root = None
+        try:
+            root = tk._default_root
+        except Exception:
+            pass
+        if not root:
+            root = tk.Tk()
+            root.withdraw()
+        resultado = {}
+        def on_guardar_colores(res):
+            resultado.update(res)
+            paleta.update(res)
+            guardar_paleta_colores(paleta)
+        win = DefinirColoresWindow(root, colores_nuevos, on_guardar_colores)
+        win.grab_set()
+        root.wait_window(win)
+
+    # Detectar colores en el Excel
+    colores_en_excel = set()
+    for row in data.itertuples():
+        for c in str(getattr(row, 'COLOR', '')).split('/'):
+            c = c.strip().upper()
+            if c:
+                colores_en_excel.add(c)
+    paleta = cargar_paleta_colores()
+    colores_nuevos = [c for c in colores_en_excel if c not in paleta]
+    if colores_nuevos:
+        definir_colores_nuevos(colores_nuevos, paleta)
+        paleta = cargar_paleta_colores()
     if ruta_pdf is None:
         carpeta = filedialog.askdirectory(title='Selecciona carpeta para guardar el PDF')
         if not carpeta:
@@ -152,8 +199,8 @@ def dibujar_sticker_caja(c, x, y, row, talla, sticker_w, sticker_h):
         c.drawImage(img_modelo, draw_x, draw_y, width=draw_w, height=draw_h, preserveAspectRatio=True, mask='auto')
 
     # --- Colores (centro) ---
+    paleta = cargar_paleta_colores()
     colores = str(row.get('COLOR','')).split('/')
-    color_map = {'BLANCO':'#FFFFFF','NEGRO':'#000000','VERDE':'#00B050','ROJO':'#FF0000','AZUL':'#0070C0','AMARILLO':'#FFFF00','GRIS':'#808080'}
     color_radius = min(3.2*mm, middle_h*0.13, sticker_w*0.04)
     color_gap = color_radius*2 + 1*mm
     total_height = len(colores)*color_gap
@@ -170,13 +217,15 @@ def dibujar_sticker_caja(c, x, y, row, talla, sticker_w, sticker_h):
         circ_x = centro_cx + centro_w*0.13 + 1
         c.setFillColorRGB(0,0,0)
         c.circle(circ_x, y_color, color_radius, stroke=1, fill=0)
-        if color in color_map:
-            hexcol = color_map[color]
+        hexcol = paleta.get(color, '#888888')
+        try:
             r = int(hexcol[1:3],16)/255
             g = int(hexcol[3:5],16)/255
             b = int(hexcol[5:7],16)/255
             c.setFillColorRGB(r,g,b)
             c.circle(circ_x, y_color, color_radius-1, stroke=0, fill=1)
+        except:
+            pass
         c.setFillColorRGB(0,0,0)
         text = color.capitalize()
         text_x = circ_x + color_radius + 2*mm
@@ -347,7 +396,7 @@ def dibujar_etiqueta_material(c, x, y, row, talla, w, h):
         ('CAPELLADA', 'icon-capellada.svg', str(row.get('CAPELLADA','')).upper()),
         ('FORRO', 'icon-forro.svg', 'TEXTIL'),
         ('PLANTILLA', 'icon-plantilla.svg', 'TEXTIL'),
-        ('SUELA', 'icon-suela.svg', str(row.get('SUELA','')).upper()),
+        ('SUELA', 'icon-suela.svg', 'SINTETICO'),
     ]
     # Configuración de posiciones
     nombre_font_size = 4.1
