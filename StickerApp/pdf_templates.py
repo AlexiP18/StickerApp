@@ -57,17 +57,16 @@ def generar_pdf_caja(data, ruta_pdf=None, mostrar_mensaje=True):
 
 def dibujar_sticker_caja(c, x, y, row, talla, sticker_w, sticker_h):
     # --- Proporciones de filas ---
-    # Header más alto para el logo
     header_h = sticker_h * 0.26
     code_h = sticker_h * 0.16
     middle_h = sticker_h * 0.50
     footer_h = sticker_h - (header_h + code_h + middle_h)
     c.setStrokeColorRGB(0,0,0)
     c.setLineWidth(1)
-    # --- Encabezado negro ---
+
+    # --- Encabezado negro y logo ---
     c.setFillColorRGB(0,0,0)
     c.rect(x, y+sticker_h-header_h, sticker_w, header_h, fill=1, stroke=1)
-    # Logo ocupa casi todo el header, perfectamente centrado
     marca = str(row.get('MARCA', '')).strip().upper()
     ruta_assets = os.path.join(os.path.dirname(__file__), 'assets')
     logo_base = 'DEFAULT'
@@ -82,7 +81,6 @@ def dibujar_sticker_caja(c, x, y, row, talla, sticker_w, sticker_h):
         if os.path.exists(posible):
             logo_img = posible
             break
-    # El logo ocupa el 92% del alto del header y 96% del ancho, sin márgenes extra
     logo_max_h = header_h * 0.92
     logo_max_w = sticker_w * 0.96
     if os.path.exists(logo_svg):
@@ -104,6 +102,7 @@ def dibujar_sticker_caja(c, x, y, row, talla, sticker_w, sticker_h):
         draw_x = x + (sticker_w - draw_w) / 2
         draw_y = y + sticker_h - header_h + (header_h - draw_h) / 2
         c.drawImage(logo_img, draw_x, draw_y, width=draw_w, height=draw_h, preserveAspectRatio=True, mask='auto')
+
     # --- Código modelo centrado ---
     c.setFillColorRGB(0,0,0)
     c.rect(x, y+sticker_h-header_h-code_h, sticker_w, code_h, fill=0, stroke=1)
@@ -115,13 +114,15 @@ def dibujar_sticker_caja(c, x, y, row, talla, sticker_w, sticker_h):
     code_descent = abs(pdfmetrics.getDescent(font_name) / 1000 * code_font_size)
     code_height = code_ascent + code_descent
     code_y = y+sticker_h-header_h-code_h + (code_h - code_height)/2 + code_descent
+    code_y -= 2
     c.drawCentredString(x+sticker_w/2, code_y, code_text)
-    # ...resto igual, pero corrigiendo el bloque número/EUR...
+
     # --- Tres celdas horizontales ---
     y_middle = y+footer_h
     c.rect(x, y_middle, sticker_w, middle_h, fill=0, stroke=1)
     c.line(x+sticker_w/3, y_middle, x+sticker_w/3, y_middle+middle_h)
     c.line(x+2*sticker_w/3, y_middle, x+2*sticker_w/3, y_middle+middle_h)
+
     # --- Foto (izquierda, centrada) ---
     ruta_img = os.path.join(os.path.dirname(__file__), 'images')
     img_modelo = None
@@ -150,23 +151,23 @@ def dibujar_sticker_caja(c, x, y, row, talla, sticker_w, sticker_h):
         draw_y = foto_cy + (foto_h - draw_h)/2
         c.drawImage(img_modelo, draw_x, draw_y, width=draw_w, height=draw_h, preserveAspectRatio=True, mask='auto')
 
-    # --- Colores (centrado vertical y horizontal en su celda, círculos y texto proporcionados) ---
+    # --- Colores (centro) ---
     colores = str(row.get('COLOR','')).split('/')
     color_map = {'BLANCO':'#FFFFFF','NEGRO':'#000000','VERDE':'#00B050','ROJO':'#FF0000','AZUL':'#0070C0','AMARILLO':'#FFFF00','GRIS':'#808080'}
     color_radius = min(3.2*mm, middle_h*0.13, sticker_w*0.04)
-    color_gap = color_radius*2 + 1.5*mm
+    color_gap = color_radius*2 + 1*mm
     total_height = len(colores)*color_gap
     centro_cx = x+sticker_w/3
     centro_cy = y_middle
     centro_w = sticker_w/3
     centro_h = middle_h
     y_start = centro_cy + (centro_h - total_height)/2 + color_gap/2
-    color_font_size = int(middle_h*0.19)
+    color_font_size = int(middle_h*0.17)
     c.setFont('Helvetica-Bold', color_font_size)
     for i, color in enumerate(colores):
         color = color.strip().upper()
         y_color = y_start + (len(colores)-i-1)*color_gap
-        circ_x = centro_cx + centro_w*0.13
+        circ_x = centro_cx + centro_w*0.13 + 1
         c.setFillColorRGB(0,0,0)
         c.circle(circ_x, y_color, color_radius, stroke=1, fill=0)
         if color in color_map:
@@ -180,39 +181,56 @@ def dibujar_sticker_caja(c, x, y, row, talla, sticker_w, sticker_h):
         text = color.capitalize()
         text_x = circ_x + color_radius + 2*mm
         c.drawString(text_x, y_color-(color_font_size*0.35), text)
-    # --- Talla (solo el número, grande y centrado) ---
+
+    # --- Talla grande alineada a la derecha y centrada verticalmente ---
     derecha_cx = x+2*sticker_w/3
     derecha_cy = y_middle
     derecha_w = sticker_w/3
     derecha_h = middle_h
-    talla_font_size = int(middle_h*0.88)
-    c.setFillColorRGB(0,0,0)
+    c.setLineWidth(1.2)
+    c.rect(derecha_cx, derecha_cy, derecha_w, derecha_h, fill=0, stroke=1)
+    c.setLineWidth(0.8)
     talla_text = str(talla)
+    margen_derecho = derecha_w * 0.08
+    margen_superior = derecha_h * 0.10
+    max_w = derecha_w - margen_derecho - derecha_w*0.05
+    max_h = derecha_h - 2*margen_superior
+    font_name = 'Helvetica-Bold'
+    talla_font_size = int(max_h)
+    c.setFont(font_name, talla_font_size)
+    # Ajustar el tamaño de fuente para que quepa en el ancho
+    while c.stringWidth(talla_text, font_name, talla_font_size) > max_w and talla_font_size > 5:
+        talla_font_size -= 1
+        c.setFont(font_name, talla_font_size)
+    # Ajustar el tamaño de fuente para que quepa en la altura
+    while talla_font_size > max_h and talla_font_size > 5:
+        talla_font_size -= 1
+        c.setFont(font_name, talla_font_size)
+        c.setFont(font_name, talla_font_size)
     talla_ascent = pdfmetrics.getAscent(font_name) / 1000 * talla_font_size
     talla_descent = abs(pdfmetrics.getDescent(font_name) / 1000 * talla_font_size)
     talla_height = talla_ascent + talla_descent
-    # Centrado óptico perfecto en la celda (como referencia adjunta)
-    c.setFont(font_name, talla_font_size)
-    # Centro de la celda
-    centro_x = derecha_cx + derecha_w/2
     centro_y = derecha_cy + derecha_h/2
-    # Ajuste óptico: compensar overshoot visual de la fuente (Helvetica-Bold)
-    ajuste_optico = talla_font_size * 0.04  # Puedes ajustar este valor si lo quieres aún más fino
-    y_talla = centro_y - (talla_height/2) + talla_ascent + ajuste_optico
-    c.drawCentredString(centro_x, y_talla, talla_text)
-    # --- Celda única abajo para código generado (centrado vertical y horizontal, fuente proporcional) ---
+    y_talla = centro_y - (talla_height/2) + talla_ascent
+    y_talla -= 28 # Bajar 28 puntos (puedes ajustar este valor)
+    x_talla = derecha_cx + derecha_w - margen_derecho
+    c.setFillColorRGB(0,0,0)
+    c.drawRightString(x_talla, y_talla, talla_text)
+
+    # --- Footer ---
     c.rect(x, y, sticker_w, footer_h, fill=0, stroke=1)
     n_orden = str(row.get('N° ORDEN', ''))
     cliente = str(row.get('CLIENTE', ''))
     fecha = datetime.datetime.now().strftime('%d%m%y')
     cliente_code = (cliente[:2] + cliente[-2:]).upper() if len(cliente) >= 4 else cliente.upper()
     codigo_final = f"{n_orden.replace('-','')}-{fecha}-{cliente_code}"
-    footer_font_size = int(footer_h*0.8)
+    footer_font_size = int(footer_h*0.9)
     c.setFont('Helvetica', footer_font_size)
     footer_ascent = pdfmetrics.getAscent('Helvetica') / 1000 * footer_font_size
     footer_descent = abs(pdfmetrics.getDescent('Helvetica') / 1000 * footer_font_size)
     footer_height = footer_ascent + footer_descent
     footer_y = y + (footer_h - footer_height)/2 + footer_descent
+    footer_y -= 1
     c.setFillColorRGB(0,0,0)
     c.drawCentredString(x+sticker_w/2, footer_y, codigo_final)
 
@@ -271,7 +289,7 @@ def generar_pdf_etiquetado(data, ruta_pdf=None, mostrar_mensaje=True):
 def dibujar_etiqueta_material(c, x, y, row, talla, w, h):
     """Dibuja una etiqueta individual con información del calzado"""
     # Margen interno
-    m = 1.5*mm
+    m = 1.4*mm
     c.setStrokeColorRGB(0, 0, 0)
     c.setLineWidth(0.8)
     
@@ -279,7 +297,7 @@ def dibujar_etiqueta_material(c, x, y, row, talla, w, h):
     c.rect(x, y, w, h, fill=0, stroke=1)
     
     # Esquinas de corte
-    corte = 2*mm
+    corte = 1*mm
     c.setLineWidth(0.5)
     # Superior izquierda
     c.line(x, y+h, x+corte, y+h)
@@ -300,25 +318,30 @@ def dibujar_etiqueta_material(c, x, y, row, talla, w, h):
     font_bold = 'Helvetica-Bold'
     font = 'Helvetica'
     
-    # --- TALLA con caja a la derecha ---
-    talla_box_w = 7*mm
-    talla_box_h = 6*mm
+# --- TALLA con caja cuadrada y centrado perfecto ---
+    talla_box_size = 5*mm  # Lado del cuadrado
     talla_font_size = 11
-    
+
     # Posición del texto TALLA
-    c.setFont(font_bold, 8)
-    talla_y = y + h - m - 4*mm
+    c.setFont(font_bold, 7)
+    talla_y = y + h - m - 4*mm + 4
     c.drawString(x + m, talla_y, 'TALLA:')
-    
-    # Caja con el número alineada a la derecha
-    box_x = x + w - talla_box_w - m
-    box_y = y + h - talla_box_h - m - 1*mm
-    c.rect(box_x, box_y, talla_box_w, talla_box_h, fill=0, stroke=1)
-    
-    # Número de talla centrado en la caja
+
+    # Caja cuadrada alineada a la derecha con espaciado igual
+    box_x = x + w - talla_box_size - m
+    box_y = y + h - talla_box_size - m - 1*mm + 4
+    c.rect(box_x, box_y, talla_box_size, talla_box_size, fill=0, stroke=1)
+
+    # Número de talla perfectamente centrado en la caja
     c.setFont(font_bold, talla_font_size)
-    c.drawCentredString(box_x + talla_box_w/2, box_y + talla_box_h/2 - 1, str(talla))
-    
+    # Centrado vertical preciso usando métricas de fuente
+    ascent = pdfmetrics.getAscent(font_bold) / 1000 * talla_font_size
+    descent = abs(pdfmetrics.getDescent(font_bold) / 1000 * talla_font_size)
+    text_height = ascent + descent
+    center_y = box_y + talla_box_size / 2
+    y_num = center_y - (text_height / 2) + descent
+    c.drawCentredString(box_x + talla_box_size / 2, y_num, str(talla))
+
     # --- Iconos y materiales alineados como en la imagen de referencia ---
     iconos = [
         ('CAPELLADA', 'icon-capellada.svg', str(row.get('CAPELLADA','')).upper()),
@@ -329,15 +352,16 @@ def dibujar_etiqueta_material(c, x, y, row, talla, w, h):
     # Configuración de posiciones
     nombre_font_size = 4.1
     material_font_size = 4.1
-    icon_h = 3*mm
-    icon_w = 7*mm
+    icon_size = 2.4*mm  # Ajusta este valor según el tamaño deseado
+    icon_h = icon_size
+    icon_w = icon_size
     line_spacing = 4.2*mm
     # Márgenes laterales
     nombre_x = x + m
-    icon_x = x + w/2 - icon_w/2
+    icon_x = x + w/2 - icon_w/2 - 0.5
     material_x = x + w - m
     # Posición inicial debajo de TALLA
-    start_y = box_y - 2.2*mm
+    start_y = box_y - 2.2*mm - 5
     for i, (nombre, icon_file, material) in enumerate(iconos):
         y_pos = start_y - i * line_spacing
         # Nombre alineado a la izquierda
@@ -355,7 +379,7 @@ def dibujar_etiqueta_material(c, x, y, row, talla, w, h):
                         if hasattr(el, 'scale'):
                             el.scale(scale, scale)
                     # Centrar icono verticalmente respecto a la línea base
-                    icon_y = icon_centro_y - (drawing.height*scale)/2
+                    icon_y = icon_centro_y - (drawing.height*scale)/2 - 20
                     renderPDF.draw(drawing, c, icon_x, icon_y, showBoundary=False)
             except:
                 c.rect(icon_x, icon_centro_y - icon_h/2, icon_w, icon_h, fill=0, stroke=1)
