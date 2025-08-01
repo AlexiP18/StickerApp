@@ -42,27 +42,39 @@ class TablaView:
                 self.tree.column(col, width=normal_width, anchor='center')
 
     def mostrar_datos(self, df):
+        import pandas as pd
         self.tree.delete(*self.tree.get_children())
-        numeric_cols = {str(n) for n in range(21, 43)}
+        all_numeric_cols = [str(n) for n in range(21, 43)]
+        numeric_cols = [col for col in all_numeric_cols if col in df.columns]
         small_width = 40
         normal_width = 80
-        self.tree['columns'] = list(df.columns)
+        # Eliminar columna TOTAL si viene en el Excel
+        cols = [col for col in df.columns if col != 'TOTAL']
+        # Calcular TOTAL sumando solo las columnas numéricas que existan
+        df = df.copy()
+        if numeric_cols:
+            df['TOTAL'] = df[numeric_cols].apply(lambda x: pd.to_numeric(x, errors='coerce').fillna(0).sum(), axis=1)
+        else:
+            df['TOTAL'] = 0
+        # Ordenar columnas como en default_columns
+        ordered_cols = [col for col in self.default_columns if col in df.columns or col == 'TOTAL']
+        self.tree['columns'] = ordered_cols
         self.tree['show'] = 'headings'
-        for col in df.columns:
+        for col in ordered_cols:
             if col in numeric_cols:
                 self.tree.heading(col, text=col, anchor='center')
                 self.tree.column(col, width=small_width, anchor='center')
             else:
                 self.tree.heading(col, text=col, anchor='center')
                 self.tree.column(col, width=normal_width, anchor='center')
-        for _, row in df.iterrows():
+        for _, row in df[ordered_cols].iterrows():
             self.tree.insert('', 'end', values=list(row))
 
         # --- Footer de sumas ---
         # Solo si hay filas
         if not df.empty:
             sumas = []
-            for col in df.columns:
+            for col in ordered_cols:
                 if col in numeric_cols or col == 'TOTAL':
                     try:
                         suma = df[col].astype(float).sum()
