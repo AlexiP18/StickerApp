@@ -1,3 +1,14 @@
+def centrar_ventana(win, parent=None):
+    win.update_idletasks()
+    w = win.winfo_width()
+    h = win.winfo_height()
+    if parent and parent.winfo_ismapped():
+        x = parent.winfo_rootx() + (parent.winfo_width()//2) - (w//2)
+        y = parent.winfo_rooty() + (parent.winfo_height()//2) - (h//2)
+    else:
+        x = win.winfo_screenwidth()//2 - w//2
+        y = win.winfo_screenheight()//2 - h//2
+    win.geometry(f'+{x}+{y}')
 import os
 from tkinter import filedialog, messagebox
 import shutil
@@ -32,17 +43,7 @@ def asociar_imagen(data, parent):
     # Modalidad y centrado respecto al padre
     win.transient(parent)
     win.grab_set()
-    win.update_idletasks()
-    # Centrar sobre el padre
-    parent_x = parent.winfo_rootx()
-    parent_y = parent.winfo_rooty()
-    parent_w = parent.winfo_width()
-    parent_h = parent.winfo_height()
-    win_w = win.winfo_width()
-    win_h = win.winfo_height()
-    x = parent_x + (parent_w // 2) - (win_w // 2)
-    y = parent_y + (parent_h // 2) - (win_h // 2)
-    win.geometry(f'+{x}+{y}')
+    centrar_ventana(win, parent)
 
     # Layout principal: lista a la izquierda, panel derecho expandido a la derecha
     main_frame = tk.Frame(win)

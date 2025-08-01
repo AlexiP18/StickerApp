@@ -19,6 +19,18 @@ class StickerApp:
         self.root = root
         self.root.title('StickerApp - Generador de Stickers para Zapatos')
         self.root.geometry('1000x600')
+        # Centrar ventana principal
+        try:
+            from definir_colores_window import centrar_ventana
+            centrar_ventana(self.root)
+        except Exception:
+            # Fallback si no existe la función
+            self.root.update_idletasks()
+            w = self.root.winfo_width()
+            h = self.root.winfo_height()
+            x = (self.root.winfo_screenwidth() // 2) - (w // 2)
+            y = (self.root.winfo_screenheight() // 2) - (h // 2)
+            self.root.geometry(f'+{x}+{y}')
         self.data = None
 
         # HEADER: Botones de Excel (arriba)

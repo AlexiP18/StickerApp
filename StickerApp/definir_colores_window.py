@@ -1,3 +1,14 @@
+def centrar_ventana(win, parent=None):
+    win.update_idletasks()
+    w = win.winfo_width()
+    h = win.winfo_height()
+    if parent and parent.winfo_ismapped():
+        x = parent.winfo_rootx() + (parent.winfo_width()//2) - (w//2)
+        y = parent.winfo_rooty() + (parent.winfo_height()//2) - (h//2)
+    else:
+        x = win.winfo_screenwidth()//2 - w//2
+        y = win.winfo_screenheight()//2 - h//2
+    win.geometry(f'+{x}+{y}')
 import tkinter as tk
 from tkinter import colorchooser, simpledialog, messagebox
 
@@ -15,15 +26,9 @@ class DefinirColoresWindow(tk.Toplevel):
         self.focus_set()
 
         # --- Centrar respecto a ventana padre ---
-        self.update_idletasks()
         w, h = 420, min(500, 60 + 50*len(colores_nuevos))
-        if master and master.winfo_ismapped():
-            x = master.winfo_rootx() + (master.winfo_width()//2) - (w//2)
-            y = master.winfo_rooty() + (master.winfo_height()//2) - (h//2)
-        else:
-            x = self.winfo_screenwidth()//2 - w//2
-            y = self.winfo_screenheight()//2 - h//2
-        self.geometry(f'{w}x{h}+{x}+{y}')
+        self.geometry(f'{w}x{h}')
+        centrar_ventana(self, master)
 
         tk.Label(self, text='Define el color para cada nombre detectado:', font=('Arial', 11, 'bold')).pack(pady=(14,8))
 

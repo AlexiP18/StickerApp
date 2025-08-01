@@ -3,7 +3,20 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import os, sys, tempfile
 
+def centrar_ventana(win, parent=None):
+    win.update_idletasks()
+    w = win.winfo_width()
+    h = win.winfo_height()
+    if parent and parent.winfo_ismapped():
+        x = parent.winfo_rootx() + (parent.winfo_width()//2) - (w//2)
+        y = parent.winfo_rooty() + (parent.winfo_height()//2) - (h//2)
+    else:
+        x = win.winfo_screenwidth()//2 - w//2
+        y = win.winfo_screenheight()//2 - h//2
+    win.geometry(f'+{x}+{y}')
+
 def mostrar_vista_previa_pdf(parent, data, tipo_sticker, generar_pdf_caja, generar_pdf_etiquetado):
+    # ...código previo...
     try:
         from pdf2image import convert_from_path
     except ImportError:
@@ -26,17 +39,7 @@ def mostrar_vista_previa_pdf(parent, data, tipo_sticker, generar_pdf_caja, gener
         modal.resizable(False, False)
         modal.transient(parent)
         modal.grab_set()
-        # Centrado
-        modal.update_idletasks()
-        parent_x = parent.winfo_rootx()
-        parent_y = parent.winfo_rooty()
-        parent_w = parent.winfo_width()
-        parent_h = parent.winfo_height()
-        win_w = modal.winfo_width()
-        win_h = modal.winfo_height()
-        x = parent_x + (parent_w // 2) - (win_w // 2)
-        y = parent_y + (parent_h // 2) - (win_h // 2)
-        modal.geometry(f'+{x}+{y}')
+        centrar_ventana(modal, parent)
         lbl = tk.Label(modal, text=msg, font=('Arial', 11), wraplength=320)
         lbl.pack(pady=(18,10), padx=10)
         btn_frame = tk.Frame(modal)
@@ -92,20 +95,9 @@ def mostrar_vista_previa_pdf(parent, data, tipo_sticker, generar_pdf_caja, gener
     preview.title('Vista previa del PDF')
     preview.geometry('700x600')
     preview.resizable(False, False)
-    def center_modal(child, parent):
-        child.update_idletasks()
-        parent_x = parent.winfo_rootx()
-        parent_y = parent.winfo_rooty()
-        parent_w = parent.winfo_width()
-        parent_h = parent.winfo_height()
-        win_w = child.winfo_width()
-        win_h = child.winfo_height()
-        x = parent_x + (parent_w // 2) - (win_w // 2)
-        y = parent_y + (parent_h // 2) - (win_h // 2)
-        child.geometry(f'+{x}+{y}')
+    centrar_ventana(preview, parent)
     preview.transient(parent)
     preview.grab_set()
-    center_modal(preview, parent)
 
     def show_modal_message(title, msg, allow_save=False, on_save=None):
         modal = tk.Toplevel(preview)
@@ -114,7 +106,7 @@ def mostrar_vista_previa_pdf(parent, data, tipo_sticker, generar_pdf_caja, gener
         modal.resizable(False, False)
         modal.transient(preview)
         modal.grab_set()
-        center_modal(modal, preview)
+        centrar_ventana(modal, preview)
         lbl = tk.Label(modal, text=msg, font=('Arial', 11), wraplength=320)
         lbl.pack(pady=(18,10), padx=10)
         btn_frame = tk.Frame(modal)
@@ -199,6 +191,24 @@ def mostrar_vista_previa_pdf(parent, data, tipo_sticker, generar_pdf_caja, gener
     canvas_frame = tk.Frame(preview)
     canvas_frame.pack(expand=True, fill='both', padx=10, pady=10)
     canvas = tk.Canvas(canvas_frame, bg='#222', highlightthickness=0)
+    # Permitir scroll vertical con la rueda del mouse en el canvas
+    def _on_mousewheel(event):
+        # Windows y Mac
+        if hasattr(event, 'delta'):
+            if event.delta < 0:
+                canvas.yview_scroll(1, 'units')
+            elif event.delta > 0:
+                canvas.yview_scroll(-1, 'units')
+        # Linux (event.num)
+        elif hasattr(event, 'num'):
+            if event.num == 5:
+                canvas.yview_scroll(1, 'units')
+            elif event.num == 4:
+                canvas.yview_scroll(-1, 'units')
+    canvas.bind('<MouseWheel>', _on_mousewheel)
+    canvas.bind('<Button-4>', _on_mousewheel)    # Linux scroll up
+    canvas.bind('<Button-5>', _on_mousewheel)    # Linux scroll down
+
     v_scroll = tk.Scrollbar(canvas_frame, orient='vertical', command=canvas.yview)
     h_scroll = tk.Scrollbar(canvas_frame, orient='horizontal', command=canvas.xview)
     canvas.configure(yscrollcommand=v_scroll.set, xscrollcommand=h_scroll.set)
@@ -250,7 +260,7 @@ def mostrar_vista_previa_pdf(parent, data, tipo_sticker, generar_pdf_caja, gener
     btn_prev.pack(side='left', padx=5)
     lbl_pagina = tk.Label(footer, text=f'Página 1 de {total_paginas}')
     lbl_pagina.pack(side='left', padx=10)
-    btn_next = tk.Button(footer, image=icon_next, text=' Siguiente', compound='left', command=siguiente, width=90)
+    btn_next = tk.Button(footer, image=icon_next, text='Siguiente ', compound='right', command=siguiente, width=90)
     btn_next.image = icon_next
     btn_next.pack(side='left', padx=5)
 
