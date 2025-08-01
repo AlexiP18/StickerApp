@@ -8,6 +8,23 @@ def asociar_imagen(data, parent):
     import tkinter as tk
     from PIL import Image, ImageTk
 
+    # --- Detectar modelos sin imagen y mostrar mensaje si hay nuevos ---
+    modelos_sin_imagen = []
+    for cod in codigos:
+        tiene_imagen = False
+        for ext in ('.png', '.jpg', '.jpeg', '.bmp'):
+            if os.path.exists(os.path.join(ruta_img, f'{cod}{ext}')):
+                tiene_imagen = True
+                break
+        if not tiene_imagen:
+            modelos_sin_imagen.append(cod)
+    if modelos_sin_imagen:
+        modelos_str = ', '.join(modelos_sin_imagen)
+        messagebox.showinfo(
+            "Nuevos modelos encontrados",
+            f"Se han encontrado los siguientes nuevos modelos: {modelos_str}. Por favor, asígneles una imagen."
+        )
+
     win = tk.Toplevel(parent)
     win.title('Asociar imágenes a modelos')
     win.geometry('700x370')
@@ -58,6 +75,19 @@ def asociar_imagen(data, parent):
     scrollbar.pack(side='right', fill='y')
     for cod in codigos:
         listbox.insert('end', cod)
+
+    # --- Resaltar modelos sin imagen ---
+    def resaltar_modelos():
+        for idx, cod in enumerate(codigos):
+            tiene_imagen = False
+            for ext in ('.png', '.jpg', '.jpeg', '.bmp'):
+                if os.path.exists(os.path.join(ruta_img, f'{cod}{ext}')):
+                    tiene_imagen = True
+                    break
+            if not tiene_imagen:
+                listbox.itemconfig(idx, {'bg': '#fff7b2'})  # Amarillo claro
+            else:
+                listbox.itemconfig(idx, {'bg': 'white'})
 
     # --- Panel derecho expandido y centrado ---
     panel_container = tk.Frame(main_frame)
@@ -151,6 +181,7 @@ def asociar_imagen(data, parent):
         shutil.copy(img_path, destino)
         show_modal_message('Imagen asociada', f'Imagen asociada a {codigo}.', 'info')
         mostrar(idx)
+        resaltar_modelos()
 
     btn_asociar.config(command=asociar_o_cambiar)
 
@@ -165,9 +196,22 @@ def asociar_imagen(data, parent):
     def filtrar_lista(*args):
         filtro = search_var.get().strip().lower()
         listbox.delete(0, 'end')
+        indices = []
         for cod in codigos:
             if filtro in cod.lower():
+                indices.append(cod)
                 listbox.insert('end', cod)
+        # Resaltar modelos sin imagen en el filtrado
+        for idx, cod in enumerate(indices):
+            tiene_imagen = False
+            for ext in ('.png', '.jpg', '.jpeg', '.bmp'):
+                if os.path.exists(os.path.join(ruta_img, f'{cod}{ext}')):
+                    tiene_imagen = True
+                    break
+            if not tiene_imagen:
+                listbox.itemconfig(idx, {'bg': '#fff7b2'})
+            else:
+                listbox.itemconfig(idx, {'bg': 'white'})
         # Seleccionar el primero si hay resultados
         if listbox.size() > 0:
             listbox.selection_set(0)
@@ -179,7 +223,26 @@ def asociar_imagen(data, parent):
 
     search_var.trace_add('write', filtrar_lista)
 
-    # Seleccionar el primero por defecto
+    # --- No permitir cerrar hasta asociar todas las imágenes ---
+    def puede_cerrar():
+        for cod in codigos:
+            tiene_imagen = False
+            for ext in ('.png', '.jpg', '.jpeg', '.bmp'):
+                if os.path.exists(os.path.join(ruta_img, f'{cod}{ext}')):
+                    tiene_imagen = True
+                    break
+            if not tiene_imagen:
+                messagebox.showwarning(
+                    "Faltan imágenes",
+                    "Debes asociar una imagen a todos los modelos antes de cerrar esta ventana."
+                )
+                return
+        win.destroy()
+
+    win.protocol("WM_DELETE_WINDOW", puede_cerrar)
+
+    # Seleccionar el primero por defecto y resaltar modelos sin imagen
     if codigos:
         listbox.selection_set(0)
         mostrar(0)
+        resaltar_modelos()
