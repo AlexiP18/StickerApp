@@ -114,41 +114,45 @@ def dibujar_sticker_caja(c, x, y, row, talla, sticker_w, sticker_h):
     # --- Encabezado negro y logo ---
     c.setFillColorRGB(0,0,0)
     c.rect(x, y+sticker_h-header_h, sticker_w, header_h, fill=1, stroke=1)
-    marca = str(row.get('MARCA', '')).strip().upper()
-    ruta_assets = os.path.join(os.path.dirname(__file__), 'assets')
-    logo_base = 'DEFAULT'
-    if 'WORLD' in marca:
-        logo_base = 'WORLD'
-    elif 'BUSCAPIES' in marca:
-        logo_base = 'BUSCAPIES'
-    logo_svg = os.path.join(ruta_assets, f'{logo_base}.svg')
-    logo_img = None
-    for ext in ['.png', '.jpg', '.jpeg', '.bmp']:
-        posible = os.path.join(ruta_assets, f'{logo_base}{ext}')
+    marca = str(row.get('MARCA', '')).strip().upper().replace(' ', '')
+    ruta_logos = os.path.join(os.path.dirname(__file__), 'assets', 'logos')
+    logo_base = marca if marca else 'DEFAULT'
+    # Buscar logo con prioridad: .svg > .png > .jpg > .jpeg > .bmp
+    logo_found = None
+    for ext_type, ext in [('svg', '.svg'), ('img', '.png'), ('img', '.jpg'), ('img', '.jpeg'), ('img', '.bmp')]:
+        posible = os.path.join(ruta_logos, f'{logo_base}{ext}')
         if os.path.exists(posible):
-            logo_img = posible
+            logo_found = (ext_type, posible)
             break
+    # Si no se encontró logo para la marca, usar DEFAULT
+    if not logo_found:
+        for ext_type, ext in [('svg', '.svg'), ('img', '.png'), ('img', '.jpg'), ('img', '.jpeg'), ('img', '.bmp')]:
+            posible = os.path.join(ruta_logos, f'DEFAULT{ext}')
+            if os.path.exists(posible):
+                logo_found = (ext_type, posible)
+                break
     logo_max_h = header_h * 0.92
     logo_max_w = sticker_w * 0.96
-    if os.path.exists(logo_svg):
-        drawing = svg2rlg(logo_svg)
-        scale = min(logo_max_w / drawing.width, logo_max_h / drawing.height)
-        draw_w = drawing.width * scale
-        draw_h = drawing.height * scale
-        draw_x = x + (sticker_w - draw_w) / 2
-        draw_y = y + sticker_h - header_h + (header_h - draw_h) / 2
-        for el in drawing.contents:
-            el.scale(scale, scale)
-        renderPDF.draw(drawing, c, draw_x, draw_y)
-    elif logo_img and os.path.exists(logo_img):
-        im = Image.open(logo_img)
-        iw, ih = im.size
-        scale = min(logo_max_w/iw, logo_max_h/ih)
-        draw_w = iw * scale
-        draw_h = ih * scale
-        draw_x = x + (sticker_w - draw_w) / 2
-        draw_y = y + sticker_h - header_h + (header_h - draw_h) / 2
-        c.drawImage(logo_img, draw_x, draw_y, width=draw_w, height=draw_h, preserveAspectRatio=True, mask='auto')
+    if logo_found:
+        if logo_found[0] == 'svg':
+            drawing = svg2rlg(logo_found[1])
+            scale = min(logo_max_w / drawing.width, logo_max_h / drawing.height)
+            draw_w = drawing.width * scale
+            draw_h = drawing.height * scale
+            draw_x = x + (sticker_w - draw_w) / 2
+            draw_y = y + sticker_h - header_h + (header_h - draw_h) / 2
+            for el in drawing.contents:
+                el.scale(scale, scale)
+            renderPDF.draw(drawing, c, draw_x, draw_y)
+        elif logo_found[0] == 'img':
+            im = Image.open(logo_found[1])
+            iw, ih = im.size
+            scale = min(logo_max_w/iw, logo_max_h/ih)
+            draw_w = iw * scale
+            draw_h = ih * scale
+            draw_x = x + (sticker_w - draw_w) / 2
+            draw_y = y + sticker_h - header_h + (header_h - draw_h) / 2
+            c.drawImage(logo_found[1], draw_x, draw_y, width=draw_w, height=draw_h, preserveAspectRatio=True, mask='auto')
 
     # --- Código modelo centrado ---
     c.setFillColorRGB(0,0,0)

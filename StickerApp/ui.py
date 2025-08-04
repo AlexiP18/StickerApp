@@ -69,6 +69,7 @@ class StickerApp:
         icon_paleta = load_icon('paleta.png')
         icon_vista = load_icon('vista.png')
         icon_logos = load_icon('logos.png')
+        icon_plantilla = load_icon('plantilla.png')
         self._icon_refs.update({
             'excel': icon_excel,
             'vaciar': icon_vaciar,
@@ -76,16 +77,48 @@ class StickerApp:
             'cadena': icon_cadena,
             'paleta': icon_paleta,
             'vista': icon_vista,
-            'logos': icon_logos
+            'logos': icon_logos,
+            'plantilla': icon_plantilla
         })
+
+        # Función para descargar plantilla
+        def descargar_plantilla_excel():
+            import shutil
+            import pandas as pd
+            from tkinter import filedialog, messagebox
+            from tabla_view import TablaView
+            plantilla_path = os.path.join(os.path.dirname(__file__), 'excel_samples', 'plantilla_stickers.xlsx')
+            # Usar las columnas por defecto de TablaView, quitando 'TOTAL' (que es calculada)
+            columnas = [col for col in TablaView.__init__.__globals__['TablaView'].default_columns if col != 'TOTAL'] if hasattr(TablaView, 'default_columns') else [
+                'N° ORDEN', 'CLIENTE', 'CÓDIGO', 'COLOR', 'MARCA', 'CAPELLADA', 'FORRO', 'SUELA'] + [str(n) for n in range(21, 43)]
+            if not os.path.exists(plantilla_path):
+                # Crear plantilla si no existe
+                os.makedirs(os.path.dirname(plantilla_path), exist_ok=True)
+                df = pd.DataFrame(columns=columnas)
+                df.to_excel(plantilla_path, index=False)
+            file_path = filedialog.asksaveasfilename(
+                defaultextension='.xlsx',
+                filetypes=[('Archivos Excel', '*.xlsx')],
+                title='Guardar plantilla Excel',
+                initialfile='plantilla_stickers.xlsx'
+            )
+            if file_path:
+                try:
+                    shutil.copyfile(plantilla_path, file_path)
+                    messagebox.showinfo('Éxito', f'Plantilla guardada en:\n{file_path}')
+                except Exception as e:
+                    messagebox.showerror('Error', f'No se pudo guardar la plantilla.\n{e}')
+
         # Usar grid para centrar los botones con iconos
         self.btn_agregar = tk.Button(header_buttons, text='Agregar Excel', image=icon_excel, compound='left', command=self.agregar_excel, padx=8)
         self.btn_vaciar = tk.Button(header_buttons, text='Vaciar tabla', image=icon_vaciar, compound='left', command=self.vaciar_tabla, padx=8)
         self.btn_descargar = tk.Button(header_buttons, text='Descargar Excel', image=icon_descargar, compound='left', command=self.descargar_excel, padx=8)
+        self.btn_plantilla = tk.Button(header_buttons, text='Descargar plantilla', image=icon_plantilla, compound='left', command=descargar_plantilla_excel, padx=8)
         self.btn_agregar.grid(row=0, column=0, padx=(0,5), pady=2)
         self.btn_vaciar.grid(row=0, column=1, padx=(0,5), pady=2)
         self.btn_descargar.grid(row=0, column=2, padx=(0,5), pady=2)
-        header_buttons.grid_columnconfigure((0,1,2), weight=1)
+        self.btn_plantilla.grid(row=0, column=3, padx=(0,5), pady=2)
+        header_buttons.grid_columnconfigure((0,1,2,3), weight=1)
         header_buttons.grid_rowconfigure(0, weight=1)
 
         # BODY: Tabla principal (centro)

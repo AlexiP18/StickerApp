@@ -56,6 +56,11 @@ class TablaView:
             df['TOTAL'] = df[numeric_cols].apply(lambda x: pd.to_numeric(x, errors='coerce').fillna(0).sum(), axis=1)
         else:
             df['TOTAL'] = 0
+        # Reemplazar NaN por 0 en columnas numéricas
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = df[col].fillna(0)
         # Ordenar columnas como en default_columns
         ordered_cols = [col for col in self.default_columns if col in df.columns or col == 'TOTAL']
         self.tree['columns'] = ordered_cols
@@ -67,8 +72,30 @@ class TablaView:
             else:
                 self.tree.heading(col, text=col, anchor='center')
                 self.tree.column(col, width=normal_width, anchor='center')
+        # Mostrar filas, formateando los valores numéricos
         for _, row in df[ordered_cols].iterrows():
-            self.tree.insert('', 'end', values=list(row))
+            vals = []
+            for col in ordered_cols:
+                val = row[col]
+                if col in numeric_cols:
+                    # Si el valor es NaN o 0, mostrar vacío; si es entero, mostrar como int
+                    if pd.isna(val) or val == 0:
+                        vals.append('')
+                    elif float(val).is_integer():
+                        vals.append(str(int(val)))
+                    else:
+                        vals.append(str(val))
+                elif col == 'TOTAL':
+                    # Mostrar TOTAL como int si es entero
+                    if pd.isna(val):
+                        vals.append('')
+                    elif float(val).is_integer():
+                        vals.append(str(int(val)))
+                    else:
+                        vals.append(str(val))
+                else:
+                    vals.append(val)
+            self.tree.insert('', 'end', values=vals)
 
         # --- Footer de sumas ---
         # Solo si hay filas

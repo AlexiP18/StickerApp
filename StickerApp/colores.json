@@ -1,7 +1,6 @@
 {
   "AMARILLO": "#fbc02d",
   "AZUL": "#0061c1",
-  "BAMBU": "#80ff80",
   "BEIGE": "#f5f5dc",
   "BLANCO": "#ffffff",
   "CELESTE": "#81d4fa",
@@ -19,5 +18,6 @@
   "SALMON": "#faefd8",
   "VERDE": "#43a047",
   "VINO": "#c3063c",
-  "VIOLETA": "#8000ff"
+  "VIOLETA": "#8000ff",
+  "BAMBU": "#00ff80"
 }
