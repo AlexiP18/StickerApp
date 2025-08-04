@@ -8,6 +8,13 @@ from tabla_view import TablaView
 from vista_previa import mostrar_vista_previa_pdf
 
 class StickerApp:
+    def abrir_gestor_logos(self):
+        from logos_manager import LogosManagerWindow
+        import os
+        logos_dir = os.path.join(os.path.dirname(__file__), 'assets', 'logos')
+        if not os.path.exists(logos_dir):
+            os.makedirs(logos_dir)
+        LogosManagerWindow(self.root, logos_dir)
     def vaciar_tabla(self):
         self.data = None
         self.tabla.vaciar()
@@ -61,13 +68,15 @@ class StickerApp:
         icon_cadena = load_icon('cadena.png')
         icon_paleta = load_icon('paleta.png')
         icon_vista = load_icon('vista.png')
+        icon_logos = load_icon('logos.png')
         self._icon_refs.update({
             'excel': icon_excel,
             'vaciar': icon_vaciar,
             'descargar': icon_descargar,
             'cadena': icon_cadena,
             'paleta': icon_paleta,
-            'vista': icon_vista
+            'vista': icon_vista,
+            'logos': icon_logos
         })
         # Usar grid para centrar los botones con iconos
         self.btn_agregar = tk.Button(header_buttons, text='Agregar Excel', image=icon_excel, compound='left', command=self.agregar_excel, padx=8)
@@ -98,18 +107,22 @@ class StickerApp:
         self.btn_asociar_img = tk.Button(footer_buttons, text='Imagenes-Modelos', image=icon_cadena, compound='left', command=self.abrir_ventana_asociar_imagen, padx=8)
         self.btn_asociar_img.grid(row=0, column=0, padx=(0,10), pady=2)
 
+        # Botón para abrir la ventana de gestión de logos
+        self.btn_logos = tk.Button(footer_buttons, text='Gestionar LOGOS', image=icon_logos, compound='left', padx=8, command=self.abrir_gestor_logos)
+        self.btn_logos.grid(row=0, column=1, padx=(0,10), pady=2)
+
         self.tipo_sticker = tk.StringVar(value='etiquetado')
         frame_tipo = tk.Frame(footer_buttons)
-        frame_tipo.grid(row=0, column=1, padx=(0,10), pady=2)
+        frame_tipo.grid(row=0, column=2, padx=(0,10), pady=2)
         tk.Label(frame_tipo, text='Tipo de sticker:').pack(side='left')
         tk.Radiobutton(frame_tipo, text='Etiquetado (interior)', variable=self.tipo_sticker, value='etiquetado').pack(side='left')
         tk.Radiobutton(frame_tipo, text='Caja', variable=self.tipo_sticker, value='caja').pack(side='left')
 
         self.btn_colores = tk.Button(footer_buttons, text='Paleta de colores', image=icon_paleta, compound='left', command=self.abrir_paleta_colores, padx=8)
-        self.btn_colores.grid(row=0, column=2, padx=(0,10), pady=2)
+        self.btn_colores.grid(row=0, column=3, padx=(0,10), pady=2)
         self.btn_previsualizar = tk.Button(footer_buttons, text='Vista previa', image=icon_vista, compound='left', command=self.vista_previa_pdf, padx=8)
-        self.btn_previsualizar.grid(row=0, column=3, padx=(0,10), pady=2)
-        footer_buttons.grid_columnconfigure((0,1,2,3), weight=1)
+        self.btn_previsualizar.grid(row=0, column=4, padx=(0,10), pady=2)
+        footer_buttons.grid_columnconfigure((0,1,2,3,4), weight=1)
         footer_buttons.grid_rowconfigure(0, weight=1)
 
     def abrir_paleta_colores(self):
@@ -127,7 +140,6 @@ class StickerApp:
         def guardar_nueva_paleta(nueva_paleta):
             with open(RUTA_PALETA, 'w', encoding='utf-8') as f:
                 json.dump(nueva_paleta, f, indent=2, ensure_ascii=False)
-        # Permitir editar todos los colores existentes
         root = self.root
         def on_guardar(res):
             guardar_nueva_paleta(res)
@@ -139,7 +151,7 @@ class StickerApp:
                 win.entries[color]['hex'] = hexcol
                 win.entries[color]['preview'].config(bg=hexcol)
         win.verificar_completos()
-        win.grab_set()
+        # Ya no es necesario centrar ni hacer modal aquí, lo hace DefinirColoresWindow
 
     def descargar_excel(self):
         import datetime
@@ -195,7 +207,4 @@ class StickerApp:
         self.tabla.mostrar_datos(df)
 
     def abrir_ventana_asociar_imagen(self):
-        if self.data is None:
-            messagebox.showwarning('Advertencia', 'Primero debes cargar un archivo Excel.')
-            return
         asociar_imagen(self.data, self.root)

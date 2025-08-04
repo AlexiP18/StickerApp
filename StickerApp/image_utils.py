@@ -1,3 +1,7 @@
+import os
+from tkinter import filedialog, messagebox
+import shutil
+
 def centrar_ventana(win, parent=None):
     win.update_idletasks()
     w = win.winfo_width()
@@ -9,13 +13,23 @@ def centrar_ventana(win, parent=None):
         x = win.winfo_screenwidth()//2 - w//2
         y = win.winfo_screenheight()//2 - h//2
     win.geometry(f'+{x}+{y}')
-import os
-from tkinter import filedialog, messagebox
-import shutil
 
 def asociar_imagen(data, parent):
-    codigos = sorted(set(str(c).upper() for c in data['CÓDIGO']))
     ruta_img = os.path.join(os.path.dirname(__file__), 'images')
+    codigos = []
+    # Si hay DataFrame válido, usarlo; si no, detectar modelos por archivos en la carpeta de imágenes
+    if data is not None and hasattr(data, '__getitem__') and 'CÓDIGO' in data:
+        codigos = sorted(set(str(c).upper() for c in data['CÓDIGO']))
+    else:
+        # Buscar modelos por archivos en la carpeta de imágenes
+        if os.path.exists(ruta_img):
+            archivos = os.listdir(ruta_img)
+            codigos_detectados = set()
+            for fname in archivos:
+                base, ext = os.path.splitext(fname)
+                if ext.lower() in ('.png', '.jpg', '.jpeg', '.bmp'):
+                    codigos_detectados.add(base.upper())
+            codigos = sorted(codigos_detectados)
     import tkinter as tk
     from PIL import Image, ImageTk
 
@@ -37,19 +51,23 @@ def asociar_imagen(data, parent):
         )
 
     win = tk.Toplevel(parent)
+    win.withdraw()
     win.title('Asociar imágenes a modelos')
     win.geometry('700x370')
     win.resizable(False, False)
-    # Modalidad y centrado respecto al padre
     win.transient(parent)
     win.grab_set()
-    centrar_ventana(win, parent)
 
     # Layout principal: lista a la izquierda, panel derecho expandido a la derecha
     main_frame = tk.Frame(win)
     main_frame.pack(expand=True, fill='both', padx=10, pady=10)
     main_frame.grid_rowconfigure(0, weight=1)
     main_frame.grid_columnconfigure(1, weight=1)
+
+    # --- Centrar y mostrar la ventana solo después de construir widgets ---
+    win.update_idletasks()
+    centrar_ventana(win, parent)
+    win.deiconify()
 
     # Columna izquierda: buscador y listado juntos arriba, listado ocupa todo el alto
     left_col = tk.Frame(main_frame)
@@ -76,6 +94,66 @@ def asociar_imagen(data, parent):
     scrollbar.pack(side='right', fill='y')
     for cod in codigos:
         listbox.insert('end', cod)
+
+    # Botón Agregar modelo debajo del listado
+    # Cargar iconos (asegurar icon_dir está definido antes de cualquier uso)
+    icon_dir = os.path.join(os.path.dirname(__file__), 'assets', 'icons')
+    icon_agregar = None
+    icon_agregar_path = os.path.join(icon_dir, 'agregar.png')
+    if os.path.exists(icon_agregar_path):
+        try:
+            img = Image.open(icon_agregar_path)
+            img = img.resize((18, 18), Image.LANCZOS)
+            icon_agregar = ImageTk.PhotoImage(img)
+        except Exception:
+            icon_agregar = None
+
+    def agregar_modelo():
+        # Diálogo simple para ingresar el nombre
+        def on_ok():
+            nombre = entry.get().strip().upper()
+            if not nombre:
+                messagebox.showwarning('Nombre requerido', 'Debes ingresar un nombre para el modelo.')
+                return
+            if nombre in codigos:
+                messagebox.showwarning('Ya existe', 'Ese modelo ya existe.')
+                return
+            codigos.append(nombre)
+            codigos.sort()
+            listbox.delete(0, 'end')
+            for cod in codigos:
+                listbox.insert('end', cod)
+            resaltar_modelos()
+            # Seleccionar el nuevo modelo
+            idx = codigos.index(nombre)
+            listbox.selection_clear(0, 'end')
+            listbox.selection_set(idx)
+            mostrar(idx)
+            top.destroy()
+
+        top = tk.Toplevel(win)
+        top.withdraw()
+        top.title('Agregar modelo')
+        top.geometry('320x120')
+        top.resizable(False, False)
+        top.transient(win)
+        top.grab_set()
+        label = tk.Label(top, text='Nombre del nuevo modelo:', font=('Arial', 11))
+        label.pack(pady=(18,4))
+        entry = tk.Entry(top, font=('Arial', 12))
+        entry.pack(pady=4, padx=16)
+        entry.focus_set()
+        btn_ok = tk.Button(top, text='Agregar', width=12, command=on_ok)
+        btn_ok.pack(pady=8)
+        top.bind('<Return>', lambda e: on_ok())
+        top.update_idletasks()
+        centrar_ventana(top, win)
+        top.deiconify()
+
+    btn_agregar = tk.Button(left_col, text='Agregar modelo', image=icon_agregar, compound='left', padx=8, font=('Arial', 11), command=agregar_modelo)
+    btn_agregar.grid(row=2, column=0, pady=(8,0), sticky='ew')
+    # Mantener referencia al icono
+    btn_agregar._icon_ref = icon_agregar
 
     # --- Resaltar modelos sin imagen ---
     def resaltar_modelos():
@@ -109,8 +187,55 @@ def asociar_imagen(data, parent):
     lbl_img = tk.Label(panel, text='', fg='gray')
     lbl_img.pack(pady=(8,0))
     # Footer
-    btn_asociar = tk.Button(panel, text='Asociar/Cambiar imagen', width=22)
-    btn_asociar.pack(pady=16)
+    # Cargar iconos
+    icon_dir = os.path.join(os.path.dirname(__file__), 'assets', 'icons')
+    icon_reemplazar = None
+    icon_eliminar = None
+    try:
+        icon_reemplazar_path = os.path.join(icon_dir, 'reemplazar.png')
+        if os.path.exists(icon_reemplazar_path):
+            img = Image.open(icon_reemplazar_path)
+            img = img.resize((18, 18), Image.LANCZOS)
+            icon_reemplazar = ImageTk.PhotoImage(img)
+        icon_eliminar_path = os.path.join(icon_dir, 'eliminar.png')
+        if os.path.exists(icon_eliminar_path):
+            img = Image.open(icon_eliminar_path)
+            img = img.resize((18, 18), Image.LANCZOS)
+            icon_eliminar = ImageTk.PhotoImage(img)
+    except Exception:
+        pass
+    # --- Botones en línea ---
+    botones_frame = tk.Frame(panel)
+    botones_frame.pack(pady=10)
+    btn_asociar = tk.Button(botones_frame, text='Asociar/Cambiar', width=120, image=icon_reemplazar, compound='left', padx=16)
+    btn_asociar.pack(side='left', padx=(0,20))
+
+    # Botón eliminar modelo
+    def eliminar_modelo():
+        sel = listbox.curselection()
+        if not sel:
+            show_modal_message('Selecciona', 'Selecciona un modelo para eliminar.', 'warning')
+            return
+        idx = sel[0]
+        codigo = codigos[idx]
+        if messagebox.askyesno('Eliminar modelo', f'¿Eliminar el modelo "{codigo}" y todas sus imágenes asociadas?'):
+            # Eliminar imágenes asociadas
+            for ext in ('.png', '.jpg', '.jpeg', '.bmp'):
+                path = os.path.join(ruta_img, f'{codigo}{ext}')
+                if os.path.exists(path):
+                    os.remove(path)
+            # Eliminar del listado y actualizar
+            codigos.pop(idx)
+            listbox.delete(idx)
+            lbl_modelo.config(text='')
+            canvas.delete('all')
+            lbl_img.config(text='')
+            resaltar_modelos()
+
+    btn_eliminar = tk.Button(botones_frame, text='Eliminar modelo', image=icon_eliminar, compound='left', padx=8, command=eliminar_modelo)
+    btn_eliminar.pack(side='left')
+    # Mantener referencias a los iconos
+    panel._icon_refs = (icon_reemplazar, icon_eliminar)
 
     # --- Funciones de lógica ---
     def mostrar(idx):
@@ -140,26 +265,19 @@ def asociar_imagen(data, parent):
 
     def show_modal_message(title, msg, kind='info'):
         modal = tk.Toplevel(win)
+        modal.withdraw()
         modal.title(title)
         modal.geometry('340x120')
         modal.resizable(False, False)
         modal.transient(win)
         modal.grab_set()
-        modal.update_idletasks()
-        # Centrar sobre la ventana padre (win)
-        parent_x = win.winfo_rootx()
-        parent_y = win.winfo_rooty()
-        parent_w = win.winfo_width()
-        parent_h = win.winfo_height()
-        win_w = modal.winfo_width()
-        win_h = modal.winfo_height()
-        x = parent_x + (parent_w // 2) - (win_w // 2)
-        y = parent_y + (parent_h // 2) - (win_h // 2)
-        modal.geometry(f'+{x}+{y}')
         lbl = tk.Label(modal, text=msg, font=('Arial', 11), wraplength=320)
         lbl.pack(pady=18, padx=10)
         btn = tk.Button(modal, text='Cerrar', command=modal.destroy, width=12)
         btn.pack(pady=8)
+        modal.update_idletasks()
+        centrar_ventana(modal, win)
+        modal.deiconify()
         modal.wait_window()
 
     def asociar_o_cambiar():

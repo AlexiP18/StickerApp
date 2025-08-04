@@ -21,11 +21,10 @@ class DefinirColoresWindow(tk.Toplevel):
         self.resultado = {}
         self.resizable(False, False)
         self.protocol('WM_DELETE_WINDOW', self.on_close)
+        # --- Modalidad y centrado igual que logos_manager.py ---
         self.transient(master)
         self.grab_set()
         self.focus_set()
-
-        # --- Centrar respecto a ventana padre ---
         w, h = 420, min(500, 60 + 50*len(colores_nuevos))
         self.geometry(f'{w}x{h}')
         centrar_ventana(self, master)
