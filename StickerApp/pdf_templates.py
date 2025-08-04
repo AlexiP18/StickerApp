@@ -111,12 +111,36 @@ def dibujar_sticker_caja(c, x, y, row, talla, sticker_w, sticker_h):
     c.setStrokeColorRGB(0,0,0)
     c.setLineWidth(1)
 
-    # --- Encabezado negro y logo ---
-    c.setFillColorRGB(0,0,0)
-    c.rect(x, y+sticker_h-header_h, sticker_w, header_h, fill=1, stroke=1)
+    # --- Encabezado con color personalizado y logo ---
     marca = str(row.get('MARCA', '')).strip().upper().replace(' ', '')
     ruta_logos = os.path.join(os.path.dirname(__file__), 'assets', 'logos')
     logo_base = marca if marca else 'DEFAULT'
+    # Cargar color de header para el logo
+    color_header = '#000000'  # Negro por defecto
+    try:
+        import json
+        ruta_color_map = os.path.join(ruta_logos, '_logo_header_colors.json')
+        if os.path.exists(ruta_color_map):
+            with open(ruta_color_map, 'r', encoding='utf-8') as f:
+                logo_color_map = json.load(f)
+            color_name = logo_color_map.get(logo_base, 'NEGRO')
+            # Buscar el valor hex en colores.json
+            ruta_colores = os.path.join(os.path.dirname(__file__), 'colores.json')
+            if os.path.exists(ruta_colores):
+                with open(ruta_colores, 'r', encoding='utf-8') as f:
+                    paleta = json.load(f)
+                color_header = paleta.get(color_name, '#000000')
+    except Exception:
+        color_header = '#000000'
+    # Convertir hex a RGB
+    try:
+        r = int(color_header[1:3],16)/255
+        g = int(color_header[3:5],16)/255
+        b = int(color_header[5:7],16)/255
+    except Exception:
+        r, g, b = 0, 0, 0
+    c.setFillColorRGB(r, g, b)
+    c.rect(x, y+sticker_h-header_h, sticker_w, header_h, fill=1, stroke=1)
     # Buscar logo con prioridad: .svg > .png > .jpg > .jpeg > .bmp
     logo_found = None
     for ext_type, ext in [('svg', '.svg'), ('img', '.png'), ('img', '.jpg'), ('img', '.jpeg'), ('img', '.bmp')]:
