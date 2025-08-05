@@ -16,6 +16,13 @@ class DefinirColoresWindow(tk.Toplevel):
     def __init__(self, master, colores_nuevos, callback_guardar):
         super().__init__(master)
         self.title('Definir nuevos colores')
+        # Icono de ventana (misma lógica que image_utils.py)
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), 'favicon.ico')
+            if os.path.exists(icon_path):
+                self.iconbitmap(icon_path)
+        except Exception:
+            pass
         self.colores_nuevos = sorted(colores_nuevos, key=lambda x: x.upper())
         self.callback_guardar = callback_guardar
         self.resultado = {}

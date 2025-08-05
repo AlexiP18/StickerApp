@@ -95,6 +95,13 @@ def mostrar_vista_previa_pdf(parent, data, tipo_sticker, generar_pdf_caja, gener
     preview.title('Vista previa del PDF')
     preview.geometry('700x600')
     preview.resizable(False, False)
+    # Icono de ventana
+    try:
+        icon_path = os.path.join(os.path.dirname(__file__), 'favicon.ico')
+        if os.path.exists(icon_path):
+            preview.iconbitmap(icon_path)
+    except Exception:
+        pass
     centrar_ventana(preview, parent)
     preview.transient(parent)
     preview.grab_set()

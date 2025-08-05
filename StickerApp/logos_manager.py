@@ -8,6 +8,13 @@ class LogosManagerWindow(tk.Toplevel):
         super().__init__(parent)
         self.title('Gestor de Logos Disponibles')
         self.geometry('600x400')
+        # Icono de ventana (misma lógica que image_utils.py)
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), 'favicon.ico')
+            if os.path.exists(icon_path):
+                self.iconbitmap(icon_path)
+        except Exception:
+            pass
         self.logos_dir = logos_dir
         self.on_update = on_update
         self.selected_logo = None
@@ -273,6 +280,13 @@ class LogosManagerWindow(tk.Toplevel):
         win = tk.Toplevel(self)
         win.title('Seleccionar color de header')
         win.geometry('320x400')
+        # Icono de ventana (misma lógica que image_utils.py)
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), 'favicon.ico')
+            if os.path.exists(icon_path):
+                win.iconbitmap(icon_path)
+        except Exception:
+            pass
         win.transient(self)
         win.grab_set()
         win.focus_set()

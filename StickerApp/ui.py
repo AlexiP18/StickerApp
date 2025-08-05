@@ -26,6 +26,14 @@ class StickerApp:
         self.root = root
         self.root.title('StickerApp - Generador de Stickers para Zapatos')
         self.root.geometry('1000x600')
+        # Icono de ventana principal
+        try:
+            import os
+            icon_path = os.path.join(os.path.dirname(__file__), 'favicon.ico')
+            if os.path.exists(icon_path):
+                self.root.iconbitmap(icon_path)
+        except Exception:
+            pass
         # Centrar ventana principal
         try:
             from definir_colores_window import centrar_ventana

@@ -57,6 +57,13 @@ def asociar_imagen(data, parent):
     win.resizable(False, False)
     win.transient(parent)
     win.grab_set()
+    # Icono de ventana
+    try:
+        icon_path = os.path.join(os.path.dirname(__file__), 'favicon.ico')
+        if os.path.exists(icon_path):
+            win.iconbitmap(icon_path)
+    except Exception:
+        pass
 
     # Layout principal: lista a la izquierda, panel derecho expandido a la derecha
     main_frame = tk.Frame(win)
@@ -138,6 +145,13 @@ def asociar_imagen(data, parent):
         top.resizable(False, False)
         top.transient(win)
         top.grab_set()
+        # Icono de ventana
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), 'favicon.ico')
+            if os.path.exists(icon_path):
+                top.iconbitmap(icon_path)
+        except Exception:
+            pass
         label = tk.Label(top, text='Nombre del nuevo modelo:', font=('Arial', 11))
         label.pack(pady=(18,4))
         entry = tk.Entry(top, font=('Arial', 12))
@@ -271,6 +285,13 @@ def asociar_imagen(data, parent):
         modal.resizable(False, False)
         modal.transient(win)
         modal.grab_set()
+        # Icono de ventana
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), 'favicon.ico')
+            if os.path.exists(icon_path):
+                modal.iconbitmap(icon_path)
+        except Exception:
+            pass
         lbl = tk.Label(modal, text=msg, font=('Arial', 11), wraplength=320)
         lbl.pack(pady=18, padx=10)
         btn = tk.Button(modal, text='Cerrar', command=modal.destroy, width=12)
